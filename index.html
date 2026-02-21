@@ -250,7 +250,7 @@
   <div class="topbar">
     <div class="leftGroup">
       <button class="ctl menuBtn" onclick="toggleMenu()">☰</button>
-      <button class="ctl" id="pauseBtn" onclick="togglePause()">⏸ break</button>
+      <button class="ctl" id="pauseBtn" onclick="togglePause()">⏸ Break</button>
       <div class="ctl draftDir" id="draftDir">Draft ➡️</div>
     </div>
     <div class="rightGroup">
@@ -560,6 +560,7 @@
     for (let i = 0; i < players; i++) {
       const el = document.getElementById("p"+i), tEl = document.getElementById("t"+i);
       const etBtn = document.getElementById("et"+i), pen = document.getElementById("pen"+i);
+      const lb = document.getElementById("lbl"+i);
       if (!el || !tEl) continue;
       tEl.textContent = format(times[i]);
       el.classList.toggle("active", i===current);
@@ -569,6 +570,13 @@
         const p = extraTimePenalty[i];
         pen.style.display = p < 0 ? "block" : "none";
         pen.textContent = p < 0 ? `${p} VP` : "";
+      }
+      // show keyboard hint on active player label
+      if (lb) {
+        const letter = playerNames[i]?.[0]?.toUpperCase() ?? "";
+        lb.textContent = i === current
+          ? `${playerNames[i]}  [${letter}]`
+          : playerNames[i];
       }
     }
   }
@@ -778,6 +786,40 @@
   window.addEventListener("resize",()=>{
     clearTimeout(resizeTimer);
     resizeTimer=setTimeout(()=>{ if(document.getElementById("game").style.display==="block"&&players>0){buildGrid();renderTimes();} },150);
+  });
+
+  // Keyboard shortcut: press first letter of current player's name → advance turn
+  // Space/Enter → also advances. P → pause toggle.
+  window.addEventListener("keydown", e => {
+    // ignore if typing in an input/contenteditable
+    const tag = document.activeElement?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.contentEditable === "true") return;
+    // only active during game
+    if (document.getElementById("game").style.display !== "block") return;
+    // overlays open? ignore
+    if (document.getElementById("scoreOverlay").classList.contains("show")) return;
+    if (document.getElementById("roundOverlay").classList.contains("show")) return;
+    if (document.getElementById("nameModal").classList.contains("show")) return;
+
+    const key = e.key.toLowerCase();
+
+    // Space or Enter → advance current player
+    if (key === " " || key === "enter") {
+      e.preventDefault();
+      tap(current);
+      return;
+    }
+
+    // P → pause toggle
+    if (key === "p") { togglePause(); return; }
+
+    // Letter key → match first letter of current player's name
+    if (key.length === 1 && key >= "a" && key <= "z") {
+      const firstLetter = playerNames[current]?.[0]?.toLowerCase();
+      if (firstLetter && key === firstLetter) {
+        tap(current);
+      }
+    }
   });
 </script>
 </body>
